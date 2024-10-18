@@ -48,13 +48,32 @@ class BaselineDataset(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return self.len
 
+    def normalize_min_max(self, data):
+
+        if isinstance(data, np.ndarray):
+            # Normalisation pour NumPy array
+            min_vals = data.min(axis=(1, 2), keepdims=True)
+            max_vals = data.max(axis=(1, 2), keepdims=True)
+            normalized_data = (data - min_vals) / (max_vals - min_vals + 1e-8)
+        elif isinstance(data, torch.Tensor):
+            # Normalisation pour tensor PyTorch
+            min_vals = torch.min(data, dim=(1, 2), keepdim=True).values
+            max_vals = torch.max(data, dim=(1, 2), keepdim=True).values
+            normalized_data = (data - min_vals) / (max_vals - min_vals + 1e-8)
+        else:
+            raise TypeError("Les données doivent être un np.ndarray ou un torch.Tensor")
+
+        return normalized_data
+
     def __getitem__(self, item: int) -> tuple[dict[str, torch.Tensor], torch.Tensor]:
         id_patch = self.id_patches[item]
 
         # Open and prepare satellite data into T x C x H x W arrays
         path_patch = os.path.join(self.folder, "DATA_S2", "S2_{}.npy".format(id_patch))
-        data = np.load(path_patch).astype(np.float32)
-        data = {"S2": torch.from_numpy(data)}
+        dat = np.load(path_patch).astype(np.float32)
+        data_normalized = self.normalize_min_max(dat)
+
+        data = {"S2": torch.from_numpy(data_normalized)}
         
         # If you have other modalities, add them as fields of the `data` dict ...
         # data["radar"] = ...
