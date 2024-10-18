@@ -81,20 +81,30 @@ def preprocess_batch_august(input_batch):
 
     return collapsed_input_batch
 
+def preprocess_batch_median(input_batch):
+    """
+    Here we want to use the collapse the temporal dimension of the input
+    batch by keeping the median value for each pixel
+
+    input_batch: dataloader X dict batch
+    """
+    median_batch = torch.median(input_batch["S2"], dim=1, keepdim=False).values
+    return median_batch
+
 def train_model(
     data_folder: Path,
     nb_classes: int,
     input_channels: int,
     model_path: None,
     train_ratio : float = 0.1,
-    preprocess_batch_fun = preprocess_batch_august,
+    preprocess_batch_fun = preprocess_batch_median,
     load_model: bool = False,
     num_epochs: int = 10,
     batch_size: int = 8,
     learning_rate: float = 1e-3,
     device: str = "cuda" if torch.cuda.is_available() else "cpu",
     verbose: bool = False,
-) -> UNetWithAttention_HSI:
+) -> UNET:
     """
     Training pipeline.
     """
@@ -118,7 +128,7 @@ def train_model(
     loss_values = [] # Defining a list to store loss values after every epoch
 
     # Defining the model, optimizer and loss function
-    model = UNetWithAttention_HSI(in_channels=input_channels, classes=nb_classes).to(device).train()
+    model = UNET(in_channels=input_channels, classes=nb_classes).to(device).train()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     loss_function = nn.CrossEntropyLoss() 
 
@@ -136,7 +146,7 @@ def train_model(
         print(f'Epoch: {e}')
         running_loss = 0.0
         for i, (inputs, targets) in tqdm(enumerate(train_loader), total=len(train_loader)):
-            # inputs = preprocess_batch_fun(inputs)
+            inputs = preprocess_batch_fun(inputs)
             inputs, targets = inputs.to(device), targets.to(device)
 
             outputs = model(inputs)
@@ -175,7 +185,7 @@ if __name__ == "__main__":
         data_folder=TRAIN_FILEPATH,
         nb_classes=20,
         input_channels=10,
-        model_path="models/unetNison1.pth",
+        model_path="models/unet.pth",
         preprocess_batch_fun=preprocess_batch_august,
         load_model=True,
         num_epochs=10,
