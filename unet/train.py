@@ -94,7 +94,7 @@ def train_model(
     learning_rate: float = 1e-3,
     device: str = "cuda" if torch.cuda.is_available() else "cpu",
     verbose: bool = False,
-) -> UNET:
+) -> UNetWithAttention_HSI:
     """
     Training pipeline.
     """
@@ -118,7 +118,7 @@ def train_model(
     loss_values = [] # Defining a list to store loss values after every epoch
 
     # Defining the model, optimizer and loss function
-    model = UNET(in_channels=input_channels, classes=nb_classes).to(device).train()
+    model = UNetWithAttention_HSI(in_channels=input_channels, classes=nb_classes).to(device).train()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     loss_function = nn.CrossEntropyLoss() 
 
